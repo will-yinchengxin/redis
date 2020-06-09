@@ -1,0 +1,206 @@
+<?php
+$redis = new redis();
+$redis ->connect('127.0.0.1',6379);
+//$redis->set('will','shuai');
+//var_dump('<pre>',$redis->get('will'));
+
+
+//$redis->flushAll();清空所有的内容
+
+//删除指定的键
+//$a = $redis->del('will1');
+//var_dump($a);
+
+############
+#列表
+#########
+//从左边插入元素
+//$redis->lPush('will1',1,2,3);
+//$push = $redis->lRange('will1',0,-1);
+//var_dump('<pre>',$push);
+
+//弹出左边第一个元素
+//$push = $redis->lPop('will1');
+//var_dump('<pre>',$push);
+//var_dump('<pre>',$redis->lRange('will1',0,-1));
+
+//读取列表的长度
+//$len = $redis->lLen('will1');
+//var_dump($len);
+
+
+//截取元素
+// $redis->lTrim('will1',0,1  );
+//$lt = $redis->lrange('will1',0,-1);
+//var_dump($lt);
+
+//$REM  = $redis->lRem('will1',1,2);
+//var_dump($REM);
+
+
+############
+#无序集合
+############
+//向集合插入数据并获取
+//$redis->sAdd('will1',1,2,3);
+//$redis->sAdd('will2',4,2,5);
+//$res = $redis->sMembers('will2');
+//var_dump($res);
+
+
+//查看元素是否再集合中
+//$res1 = $redis->sIsMember('will2',1);
+//var_dump($res1);
+
+//查看集合的个数
+//$res2 = $redis->scard('will2');
+//var_dump($res2);
+
+//删除集合中的元素
+//$res = $redis->sRem('will2',1);
+//var_dump($res);
+
+
+// //计算集合之间的交集,并集,差集
+
+//并集 (带去重)
+//$res = $redis->sunion('will1','will2');
+//var_dump($res);
+
+//差集
+//$res = $redis->sdiff('will1','will2');
+//var_dump($res);
+
+//交集
+//$res = $redis->sInter('will1','will2');
+//var_dump($res);
+
+//将交集内容转储
+// $redis->sInterStore('will1_will2','will2','will1');
+//$res = $redis->smembers('will1_will2');
+//var_dump($res);
+
+
+############
+#有序集合
+############
+
+//添加元素
+//$redis->zAdd('yin',1,'yin',2,'成');
+//键必须是数字类型,否则自动转换成数字类型
+//$redis->zAdd('yin',"哈哈",'yin2',"10",'成发生大');
+
+//查看元素个数
+//$res = $redis->zCard('yin');
+//var_dump($res);
+
+//查看集合中的所有元素只
+//$res = $redis->zrange('yin',0,-1);
+//var_dump($res);
+
+//查看所有元素值带序号
+//$res = $redis->zrange('yin',0,-1,true);
+//var_dump($res);
+
+//查看所有元素值带序号(倒序)
+///$res = $redis->zrevrange('yin',0,-1,true);
+//$res = $redis->zrevrange('yin',0,-1,true);
+//var_dump($res);
+
+
+//删除指定的值
+//$res = $redis->zrem('yin','yin');
+//var_dump($res);
+
+//删除指定范围之间的值
+//$res = $redis->zRemRangeByScore('yin',1,2);
+//var_dump($res);
+
+
+#########
+#哈希类型
+#与list队列不同的是,他是无序的散列
+#适合做一些数据统计,比如说销量,产品量
+#########
+//一个一个存储,获取hash值
+//$redis->hset('user1','name','yin');
+//$redis->hset('user1','age',23);
+//$res = $redis->hGet('user1','name');
+//var_dump($res);
+
+//大量存储,获取(当设置的字段已经存在,此时的hmset就是修改)
+//$redis->hMSet('user2', array('name' => 'Joe', 'salary' => 2000));
+//$res = $redis->hmGet('user2', array('name', 'salary'));
+//var_dump($res);
+//案例
+//$data = array('name' => 'Joe', 'salary' => 2000);
+//$redis->hMSet('user2',$data);
+//$re = array('name', 'salary');
+//$res = $redis->hmGet('user2', $re);
+//var_dump($res);
+
+
+//删除
+//$res = $redis->hdel('user2','name');
+//var_dump($res);
+
+//获取字段的长度
+//$res = $redis->hLen('user2');
+//var_dump($res);
+
+//获取某个字段的所有键
+//$res = $redis->hkeys('user2');
+//var_dump($res);
+
+
+//获取某个字段的所有值
+//$res = $redis->hvals('user2');
+//var_dump($res);
+
+//判断字段中某个键是否存在
+//$res = $redis->hexists('user2','sex');
+//var_dump($res);
+
+//判断某个字段是否存在
+//$res = $redis->exists('user1');
+//var_dump($res);
+//存在int(1) 不存在int(0)
+
+
+//整数数字自增,小数自增
+//$res = $redis->hIncrBy('user1','age',2);
+//$res = $redis->hIncrBy('user1','age',-2);
+//$res = $redis->hIncrByFloat('user1', 'float', 1.5) );
+//var_dump($res);
+
+
+//获取指定字段的所有值
+//$res = $redis->hGetAll('user2');
+//var_dump($res);
+
+
+
+
+
+
+
+
+///ctrl+左键 跟踪代码   ctrl+o  显示类的方法
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//var_dump( '<pre>', $handsome );exit;
+

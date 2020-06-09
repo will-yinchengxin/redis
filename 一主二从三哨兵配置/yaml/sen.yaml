@@ -1,0 +1,41 @@
+version: "3.6"
+services: # 代表就是构建一组服务 -》一组容器 php,nginx,redis
+  sen_1:  # 要创建的服务-》就是容器php
+    image: redis/redis:5
+    networks:
+      redis:
+        ipv4_address: 172.10.0.6
+    container_name: sen_1 # 指定创建的容器名称
+    ports: # 绑定端口
+      - "22530:26379" # - "宿主机端口 ： 容器端口"
+    volumes: # 数据卷
+      - "/redis/sen__1:/redis" # - "宿主机目录 ： 容器目录"
+    command: /usr/local/bin/redis-sentinel /redis/sentinel.conf
+  sen_2:  # 要创建的服务-》就是容器php
+    image: redis/redis:5
+    networks:
+      redis:
+        ipv4_address: 172.10.0.7
+    container_name: sen_2 # 指定创建的容器名称
+    ports: # 绑定端口
+      - "22531:26379" # - "宿主机端口 ： 容器端口"
+    volumes: # 数据卷
+      - "/redis/sen__2:/redis" # - "宿主机目录 ： 容器目录"
+    command: /usr/local/bin/redis-sentinel /redis/sentinel.conf
+  sen_3:  # 要创建的服务-》就是容器php
+    image: redis/redis:5
+    networks:
+      redis:
+        ipv4_address: 172.10.0.8
+    container_name: sen_3 # 指定创建的容器名称
+    ports: # 绑定端口
+      - "22532:26379" # - "宿主机端口 ： 容器端口"
+    volumes: # 数据卷
+      - "/redis/sen__3:/redis" # - "宿主机目录 ： 容器目录"
+    command: /usr/local/bin/redis-sentinel /redis/sentinel.conf
+# 设置网络段
+networks:
+  # 引用外部的网络段
+  redis:
+    external: # 标识为扩展的
+      name: redis

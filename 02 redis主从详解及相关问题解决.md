@@ -153,7 +153,7 @@ slave0:ip=192.160.1.140,port=6379,state=online,offset=6104,lag=1
 
 ````
 流程说明 
-1. 发送psync命令进行数据同步，由于是第一次进行复制，从节点没有复制偏移量和主节点的运行id，所以发送psync ? -1 
+1. 发送psync命令(用于复制功能(replication)的内部命令。)进行数据同步，由于是第一次进行复制，从节点没有复制偏移量和主节点的运行id，所以发送psync ? -1 
 
 2. 主节点根据psync ? -1解析出当前为全量复制，回复+FULLRESYNC响应(主机会向从机发送 runid 和 offset，因为 slave 并没有对应的 offset，所以是全量复制) 
 

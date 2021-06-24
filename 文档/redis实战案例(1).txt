@@ -1,0 +1,68 @@
+// -------------------------------------------最近联系用户前100(n)------------------------------------------------------------
+因为我们已经预先考虑到了“从列表里面移除一个元素所需的时间与列表长度成正比”这个问题，并明确地限制最近联系人列表最多只能存储100个联系人，
+所以给出的自动补全实现可以运行得非常好，并且速度也足够快，但它并不适合用来处理非常大的列表
+
+        // 使用事务, 新增用户先删除,再添加,最有做截断 截取前100
+//        $conn = $this->redis->pipeline();
+//        $conn->lRem($key, 'joy1');
+//        $conn->lPush($key, 'joy1');
+//        $conn->lTrim($key, 0, 99);
+//        $this->redis->pipeline()->exec();
+
+        // 自动按输入匹配
+//        $searchKey = $this->request->getQuery('key');
+//        $list = $this->redis->lRange($key, 0, -1);
+//        $data = [];
+//        foreach ($list as $value) {
+//            if ((strpos($value, $searchKey) === 0)) {
+//                $data[] = $value;
+//            }
+//        }
+//        var_dump($data);
+
+
+
+
+// -------------------------------------------redis实现自动补全(前缀补全)---------------------------------------------------
+    因为 watch 只会再数据被其他客户抢先修改了的情况下通知执行了这个命令的客户端,而不会阻止其他客户端对数据进行修改
+    所以这个命令被称为乐观锁
+
+    // 已经字符序列(一定按照顺序排序使用)
+    private const str = '`abcdefghijklmnopqrstuvwxyz{';
+
+    public function findPrefix(string $str) {
+        // 获取str的最后一个字符
+        $lastStr = substr($str, strlen($str) - 1,1);
+        $pos = (strpos(self::str, $lastStr) > 0) ? (strpos(self::str, $lastStr) - 1) : 0;
+        // substr(self::str, $pos, 1).'{'
+        $start = substr($str, 0,strlen($str) - 1).substr(self::str, $pos, 1).'{';
+        $end = $str.'{';
+        return ['start' => $start, 'end' => $end];
+    }
+
+    public function fetch() {
+        $strRange = $this->findPrefix('abk');
+        $key = 'recent:will';
+        // 避免已经存在 $start 与 $end
+        $start = $strRange['start'].strval(mt_rand(100000, 9999999));
+        $end = $strRange['end'].strval(mt_rand(100000, 9999999));
+        $this->redis->zAdd($key, 0, $start);
+        $this->redis->zAdd($key, 0, $end);
+        while(true) {
+            $this->redis->watch($key);
+            $sindex = intval($this->redis->zRank($key, $start));
+            $eindex = intval($this->redis->zRank($key, $end));
+            $this->redis->multi();
+            $this->redis->zRem($key, $start);
+            $this->redis->zRem($key, $end);
+            $this->redis->zRange($key, $sindex, $eindex);
+            $result = $this->redis->exec();
+            if (is_array($result)) {
+                break;
+            }
+        }
+        $result = array_pop($result);
+        array_shift($result);
+        array_pop($result);
+        var_dump($result);
+    }

@@ -1,0 +1,84 @@
+version: "3.6"
+services:
+  # -------- 主节点 --------
+  redis_3:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.3
+    container_name: redis_3
+    ports:
+      - "6100:6379"
+      - "16100:16379"
+    volumes:
+        - /redis/redis3/master/100:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_4:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.4
+    container_name: redis_4
+    ports:
+      - "6101:6379"
+      - "16101:16379"
+    volumes:
+        - /redis/redis3/master/101:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_5:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.5
+    container_name: redis_5
+    ports:
+      - "6102:6379"
+      - "16102:16379"
+    volumes:
+        - /redis/redis3/master/102:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+
+  # -------- 从节点 --------
+
+  redis_6:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.6
+    container_name: redis_6
+    ports:
+      - "6010:6379"
+      - "16010:16379"
+    volumes:
+        - /redis/redis3/slaves/10:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_7:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.7
+    container_name: redis_7
+    ports:
+      - "6011:6379"
+      - "16011:16379"
+    volumes:
+        - /redis/redis3/slaves/11:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_8:
+    image: redis/redis:5
+    networks:
+       redis:
+         ipv4_address: 172.10.0.8
+    container_name: redis_8
+    ports:
+      - "6012:6379"
+      - "16012:16379"
+    volumes:
+        - /redis/redis3/slaves/12:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+# 网段设置
+networks:
+  #引用外部预先定义好的网段
+  redis:
+    external:
+      name: redis

@@ -1,0 +1,14 @@
+docker build -t app .
+docker run -itd -p 8050:8050 --name myApp app
+docker exec -it  b54b59d99388  sh
+
+ab:
+yum -y install httpd-tools
+
+-n :请求总次数
+-c:并发数
+-k:是否开启长连接
+-s:超时设置
+-t:请求时间
+
+ab -c 100 -n 10000 -t 10 http://192.168.0.107:8060/hello

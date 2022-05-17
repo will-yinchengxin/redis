@@ -1,0 +1,32 @@
+version: "3.6" # 确定docker-composer文件的版本
+services: # 代表就是一组服务 - 简单来说一组容器
+  redis_7: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.17   #设置ip地址
+    container_name: redis_7 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6327:6379" # php java python 语言连接
+      - "16327:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_cluster/redis_7:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_8: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.18   #设置ip地址
+    container_name: redis_8 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6328:6379" # php java python 语言连接
+      - "16328:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_cluster/redis_8:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+#网络使用
+networks:
+  #引用外部预先定义好的网段
+  redis:
+    external:
+      name: redis

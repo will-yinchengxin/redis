@@ -1,0 +1,5 @@
+# 这里的安装包尽量选用 redis-5.0.7 其他版本可能会引发一些错误
+
+docker build -t redis/redis:5 .
+
+docker run -itd  -p 6350:6379 --name redis  redis/redis:5

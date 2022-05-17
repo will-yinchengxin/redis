@@ -1,0 +1,83 @@
+version: "3.6" # 确定docker-composer文件的版本
+services: # 代表就是一组服务 - 简单来说一组容器
+  redis_1: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+       redis:
+         ipv4_address: 172.10.0.10   #设置ip地址
+    container_name: redis_1 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6320:6379" # php java python 语言连接
+      - "16320:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+        - /redis/redis_1:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_2: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.11   #设置ip地址
+    container_name: redis_2 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6321:6379" # php java python 语言连接
+      - "16321:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_2:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_3: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.12   #设置ip地址
+    container_name: redis_3 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6322:6379" # php java python 语言连接
+      - "16322:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_3:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_4: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.13   #设置ip地址
+    container_name: redis_4 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6323:6379" # php java python 语言连接
+      - "16323:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_4:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_5: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.14   #设置ip地址
+    container_name: redis_5 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6324:6379" # php java python 语言连接
+      - "16324:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_5:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+  redis_6: # 这个表示服务的名称，课自定义; 注意不是容器名称
+    image: redis/redis:5 # 指定容器的镜像文件
+    networks: ## 引入外部预先定义的网段
+      redis:
+        ipv4_address: 172.10.0.15   #设置ip地址
+    container_name: redis_6 # 这是容器的名称
+    ports: # 配置容器与宿主机的端口
+      - "6325:6379" # php java python 语言连接
+      - "16325:16379" # 对节点 6379 + 10000 = 端口 对节点进行通信
+    volumes: # 配置数据挂载
+      - /redis/redis_6:/redis
+    command: /usr/local/bin/redis-server /redis/conf/redis.conf
+# 网段设置
+networks:
+  #引用外部预先定义好的网段
+  redis:
+    external:
+      name: redis
+
+
+# redis-cli --cluster create 172.10.0.10:6379 172.10.0.11:6379 172.10.0.12:6379 172.10.0.13:6379 172.10.0.14:6379 172.10.0.15:6379  --cluster-replicas 1

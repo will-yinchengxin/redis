@@ -1,0 +1,17 @@
+docker build -t redis/redis:5 .
+
+docker run -itd  -p 6350:6379 --name redis  redis/redis:5
+docker run -itd  --name  sentinel-1  --redis will  -v /root/sentinel.conf:/usr/docker/sentinel/sentinel.conf -p 26379:26379  --ip 172.11.0.8  redis
+
+docker network create  --subnet=192.10.0.0/16  redis
+docker network ls
+docker network inspect redis
+
+docker stop $(docker ps -a -q) | xargs docker rm
+
+docker-compose up -d
+
+docker exec -it redis_1 sh
+redis-cli --cluster create 192.10.0.10:6379 192.10.0.11:6379  192.10.0.12:6379  192.10.0.13:6379  192.10.0.14:6379   192.10.0.15:6379 --cluster-replicas 1
+
+redis-cli -c   // 集群链接

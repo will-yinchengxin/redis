@@ -1,0 +1,195 @@
+一. Redis使用setnx实现分布式锁及其问题、优化
+    设置方式:
+        热麦系统:11>setnx(key,value)  //设置key.
+        热麦系统:11>delete(key)  //将key删除
+    当key存在的时候，设置会失败，返回0。当key不存在的时候，设置成功，返回1。(PHP)
+
+    //--------------------------------------高并发分布式锁--------------------------------------
+    $redis = new \Redis();
+    $redis->connect('127.0.0.1', 16379);
+    echo "Connection to server sucessfully";
+    $expire = 1;
+    $key = 'test1';
+    $lock = false;
+    $is_lock = $redis->setnx($key, time() + $expire);
+    while(true) {
+        if ($is_lock) {
+            break;
+        } else {
+            $lock_time = $redis->get($key);
+            //锁已过期，重置
+            if ($lock_time < time()) {
+                $redis->del($key);
+                $lock_time = $redis->get($key);
+                $is_lock = $redis->setnx($key, time() + $expire);
+            }
+        }
+    }
+
+    $is_lock ? true : false;
+    if ($is_lock) {
+        writeFile("正常访问" . "\n");
+    } else {
+        writeFile("系统繁忙" . "\n");
+    }
+
+    function writeFile($data, $type = 'a')
+    {
+    //sleep(1);
+    //usleep(500000);//假设暂停 500毫秒
+        $filename = date("Ymd") . ".log";
+        $handle = @ fopen($filename, $type);
+        flock($handle, LOCK_EX);
+        ob_start();
+        echo "\n" . "[SQL]" . "\n";
+        print_r($data);
+        $string = ob_get_contents();
+        ob_end_clean();
+        $fettle = @fwrite($handle, $string);
+        fclose($handle);
+        @chmod($filename, 0777);
+    }
+    //---------------------------------------------------------------------------------------------------------
+    方式一:
+        $redis->multi();
+        $redis->setNX($key, $value);
+        $redis->expire($key, $ttl);  // 任何请求都可以刷新过期时间
+        $redis->exec();
+        当多个请求到达时，虽然只有一个请求的 setNX 可以成功，但是任何一个请求的 Expire 却都可以成功，
+        这就意味着即便获取不到锁也可以刷新过期时间，导致锁一直有效
+
+    方式二:
+        // Redis从 2.6.12 起，SET 涵盖了 SETEX 的功能, 所以使用 SET 就可以解决上面遇到的问题
+        $ttl = 10;
+        $redis = new \Redis();
+        $res = $redis->set('name', 'will', array('nx', 'ex' => $ttl));
+        if ($res) {
+            // 处理更新缓存逻辑
+            // ......
+            // 删除锁
+            // $redis->del($key);
+        }
+        // 如果一个请求更新缓存的时间比锁的有效期还要长，导致在缓存更新过程中锁就失效了，此时另一个请求就会获取到锁，
+        // 但前一个请求在缓存更新完毕的时候，直接删除锁的话就会出现误删其它请求创建的锁的情况
+
+    方式三:
+        $ttl = 10;
+        $redis = new \Redis();
+        $rs = $redis->set('name', 1010, array('nx', 'ex' => $ttl));
+        if ($rs) {
+            //处理更新缓存逻辑
+            // ......
+            //先判断随机数，是同一个则删除锁
+            if ($redis->get('name') == 1010) {
+                $redis->del('name');
+            }
+        }
+    //------------------------------------------------------------------------------------------------------------------
+
+二. Redis 过期键的删除策略
+    - EXPIRE key seconds        // 秒级别
+    - PEXPIRE key milliseconds  // 毫秒级别
+    - ttl key                   // 查看过期剩余时间
+    - setNX                     // 加锁 并 借助expire 设置过期时间
+    - set name will EX 10       // 通过 set 命令直接进行设置
+
+    1)定时删除
+        优点是：对内存友好。因为通过定时器，当一个键到达过期时间时就会立马被删除，直接就释放了内存。
+        缺点是：对 CPU 不友好。因为如果过期键比较多，那么删除这些过期键会占用相当一部分CPU时间，如果CPU时间非常紧张的话，还将CPU时间用在删除和当前任务无关的过期键上，
+              会对服务器的响应时间以及吞吐量造成影响。
+        定时删除 策略来时间过期键的删除不太现实
+
+    2)惰性删除
+        惰性删除策略优点：对 CPU 时间友好。程序只会在取出键时才会判断是否删除，并且只作用到当前键上，其他过期键不会花费 CPU 时间去处理。
+        惰性删除策略缺点：对内存不友好。因为只有键被使用时才会去检查是否删除，如果有大量的键一直不被使用，那么这些键就算过期了也不会被删除，会一直占用着内存。
+                       这种可以理解为是一种内存泄漏——大量无用的数据一直占用着内存，并且不会被删除。
+
+    3)定期删除
+        相比较定时删除对CPU的不友好，惰性删除的对内存不友好。定期删除采用了一种折中的方式：
+            定期删除策略每隔一段时间执行一次删除过期键操作，并通过限制删除操作执行的时长和频率来减少删除操作对CPU时间的影响。
+            并且，通过定期删除过期键，有效的减少了过期键带来的内存浪费。
+
+        问题:
+            但删除的时长和频率比较难定义，因为：
+                - 如果频率太高或者时长太长，那么会占用大量的CPU时长。
+                - 如果过短又会出现内存浪费的情况
+            如果采用定期删除策略的话需要通过具体的业务场景来定义时长和频率
+
+    4)Redis实际使用的是 惰性删除+定期删除 的策略
+        惰性删除策略由 expireIfNeeded 函数实现，所有读写数据库的 Redis 命令在执行之前都会调用 exipreIfNeeded 函数对输入键进行检查。
+            - 如果键过期，会将键删除并返回空。
+            - 如果键没有过期，则不做操作。
+        定期删除策略由 activeExpireCucle 函数实现，被调用时，它在规定的时间内，分多次遍历服务器中的各个数据库，从数据库的 expires 字典中随机检查一部分键的过期时间，
+        并删除其中的过期键。
+
+三.Redis中缓存 穿透/击穿/雪崩 问题解决
+    1)缓存穿透:
+        key 对应的数据在数据源并不存在，每次针对此 key 的请求从缓存获取不到，请求都会到数据源，从而可能压垮数据源。
+        比如用一个不存在的用户 id 获取用户信息，不论缓存还是数据库都没有，若黑客利用此漏洞进行攻击可能压垮数据库
+
+        解决方案:
+            1.对所有可能查询的参数以hash形式存储，在控制层先进行校验，不符合则丢弃。还有最常见的则是采用布隆过滤器，将所有可能存在的数据哈希到一个足够大的bitmap中，
+              一个一定不存在的数据会被这个bitmap拦截掉，从而避免了对底层存储系统的查询压力。
+
+            2.也可以采用一个更为简单粗暴的方法，如果一个查询返回的数据为空（不管是数据不存在，还是系统故障），
+                我们仍然把这个空结果进行缓存，但它的过期时间会很短，最长不超过五分钟。
+
+            3.使用布隆过滤器（推荐 ！！！！）
+
+    2)缓存击穿:
+        key 对应的数据存在，但在 redis 中过期，此时若有大量并发请求过来，
+        这些请求发现缓存过期一般都会从后端 DB 加载数据并回设到缓存，这个时候大并发的请求可能会瞬间把后端 DB 压垮
+
+        解决方案:
+            1.使用互斥锁 Mutex, 在缓存失效的时候（判断拿出来的值为空），不是立即去 load db，
+                而是先使用缓存工具的某些带成功操作返回值的操作（比如 Redis 的 SETNX 或者 Memcache 的 ADD）去 set 一个 mutex key，
+                当操作返回成功时，再进行 load db 的操作并回设缓存；否则，就重试整个 get 缓存的方法
+                demo(GoLang):
+                func testCacheMiss() {
+                    // 获取数据过程
+                    rdb := redis.New(t.Srp.DB.Get()).WithContext(ctx)
+                    defer rdb.Close()
+                    loginStr, err := redis.String(rdb.Do("GET", loginKey))
+                    if err != nil {
+                        return
+                    }
+
+                    // 过期测率预留字段
+                    cacheTime := 30
+                    keyMutex := "key_mutex"
+
+                    if len(loginStr) == 0 {
+                        // 只允许 SETNX 成功的 thread 进行 load db 更逊 cache
+                        if (redis.Int(rdb.Do("SETNX", keyMutex, "nil"))) {
+                            // 数据库中读取的数据， 更新缓存
+                            cacheValue := "数据库中获取的"
+                            redis.Bool(rdb.Do("SET", cacheValue))
+                            redis.Int(rdb.Do("DEL", keyMutex))
+                            return cacheValue
+                        } else {
+                            // 其他线程 load cache 没有结果， 返回刷新重试即可
+                            time.Sleep(10) //这里也可以立即返回，由客户端控制再次访问的频率
+
+                            loginStr, err = redis.String(rdb.Do("GET", loginKey))
+                            if err != nil {
+                                return
+                            }
+                            return loginStr
+                        }
+                    }
+                    return loginStr
+                }
+
+    3)缓存雪崩:
+        当缓存服务器重启或者大量缓存集中在某一个时间段失效，这样在失效的时候，也会给后端系统(比如 DB)带来很大压力
+
+        解决方案:
+            1.事前：尽量保证整个 redis 集群的高可用性，发现机器宕机尽快补上。选择合适的内存淘汰策略。
+            2.事中: 进行 限流,熔断,淘汰策略 等,避免MySQL崩掉
+            3.事后：利用 redis 持久化机制(RDB+AOF)保存的数据尽快恢复缓存
+
+            - 在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待。
+            - 不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀. 比如我们可以在原有的失效时间基础上增加一个随机值，比如1-5分钟随机，
+              这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件
+
+

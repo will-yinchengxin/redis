@@ -3,7 +3,6 @@
 ----
 ## 1 redis server (单机)的运行原理
 ### 1.1 Redis 基于文件事件的网络通信模型
-[详细内容可见飞哥公众号](https://mp.weixin.qq.com/s/2y60cxUjaaE2pWSdCBX1lA)
 
 **Redis 基于 Reactor 模式开发了自己的 网络事件处理器 ： 这个处理器被称为文件事件处理器（file event handler）**
 - 文件事件处理器使用 I/O 多路复用（multiplexing）程序来同时监听多个套接字， 并根据套接字目前执行的任务来为套接字关联不同的事件处理器
